@@ -1,12 +1,10 @@
-import nibabel as nib
 import numpy as np
 import torch
 from scipy.ndimage import binary_closing
 
-from utils.functions import normalize, reimburse_conform
+from utils.functions import normalize
 
-
-def crop(voxel, model, device):
+def crop(voxel: np.ndarray, model: torch.nn.Module, device: torch.device) -> torch.Tensor:
     """
     Crops the given voxel data using the provided model and device.
 
