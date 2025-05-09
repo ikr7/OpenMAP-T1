@@ -1,205 +1,142 @@
 import argparse
-import glob
-import os
-from functools import partial
-
-import torch
-from nibabel import processing
-from tqdm import tqdm as std_tqdm
-
-tqdm = partial(std_tqdm, dynamic_ncols=True)
+from dataclasses import dataclass
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
 
-from utils.cropping import cropping
-from utils.functions import reimburse_conform
-from utils.hemisphere import hemisphere
-from utils.load_model import load_model
-from utils.make_csv import make_csv
-from utils.make_level import create_parcellated_images
-from utils.parcellation import parcellation
-from utils.postprocessing import postprocessing
-from utils.preprocessing import preprocessing
-from utils.stripping import stripping
+from utils.preprocessing import preprocess
 
+@dataclass
+class ParcellationArgs:
+    input_dir: Path
+    output_dir: Path
+    model_dir: Path
+    only_face_cropping: bool
 
-def create_parser():
-    """
-    Creates and returns the argument parser for the script.
+def create_parser() -> argparse.ArgumentParser:
 
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
-    """
-    parser = argparse.ArgumentParser(description="Use this to run inference with OpenMAP-T1.")
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+
     parser.add_argument(
-        "-i",
+        "--input-dir",
+        help="input directory containing .nii/.nii.gz files",
+        dest="input_dir",
         required=True,
-        help="Input folder. Specifies the folder containing the input brain MRI images.",
+        type=Path,
     )
+
     parser.add_argument(
-        "-o",
+        "--output-dir",
+        help="output directory",
+        dest="output_dir",
         required=True,
-        help="Output folder. Defines the output folder where the results will be saved. If the specified folder does not exist, it will be automatically created.",
+        type=Path
     )
+
     parser.add_argument(
-        "-m",
+        "--model-dir",
+        help="model directory containing CNet/, HNet/, PNet/, and SSNet/",
+        dest="model_dir",
         required=True,
-        help="Folder of pretrained models. Indicates the location of the pretrained models to be used for processing.",
+        type=Path,
     )
-    
-    # Create a mutually exclusive group for processing modes.
-    # If one of these options is specified, only that processing step is performed and the remaining steps are skipped.
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
+
+    parser.add_argument(
         "--only-face-cropping",
+        help="perform face cropping only",
+        dest="only_face_cropping",
         action="store_true",
-        help="Perform only face cropping. If specified, only face cropping will be executed and all other processing steps will be skipped.",
+        default=False
     )
-    group.add_argument(
-        "--only-skull-stripping",
-        action="store_true",
-        help="Perform only skull stripping. If specified, only skull stripping will be executed and all other processing steps will be skipped.",
-    )
-    
-    args = parser.parse_args()
-    print("Parsed arguments:", args)
-    return args
 
+    return parser
 
-def main():
-    """
-    Main function to execute the OpenMAP-T1 parcellation process.
-    This function performs the following steps:
-    1. Prints a citation message for the OpenMAP-T1 paper.
-    2. Parses command-line arguments.
-    3. Determines the device to use (CUDA, MPS, or CPU).
-    4. Loads the pretrained models.
-    5. Retrieves the list of input NIfTI files.
-    6. Iterates over each input file and performs the following operations:
-        a. Extracts the base name of the file.
-        b. Creates the output directory for the current file.
-        c. Loads the input image, converts it to canonical form, and squeezes it.
-        d. Creates a new NIfTI image with the data converted to float32.
-        e. Saves the new NIfTI image to the output directory.
-        f. Preprocesses the input image.
-        g. Crops the image using the cropping network.
-        h. Strips the image using the stripping network.
-        i. Parcellates the stripped image using the parcellation networks.
-        j. Separates the hemispheres using the hemisphere networks.
-        k. Postprocesses the parcellated and separated image.
-        l. Generates a CSV file with volume information and saves it.
-        m. Creates a new NIfTI image with the processed output and saves it.
-        n. Cleans up temporary files.
-    Returns:
-        None
-    """
+def check_model_dir(model_dir: Path) -> None:
+    cnet_path = model_dir / "CNet/CNet.pth"
+    if not (cnet_path.exists() and cnet_path.is_file()):
+        raise f"{model_dir} does not contain ./CNet/CNet.pth"
 
-    print(
-        "\n#######################################################################\n"
-        "Please cite the following paper when using OpenMAP-T1:\n"
-        "Kei Nishimaki, Kengo Onda, Kumpei Ikuta, Jill Chotiyanonta, Yuto Uchida, Hitoshi Iyatomi, Kenichi Oishi (2024).\n"
-        "OpenMAP-T1: A Rapid Deep Learning Approach to Parcellate 280 Anatomical Regions to Cover the Whole Brain.\n"
-        "paper: https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.70063.\n"
-        "Submitted for publication in the Human Brain Mapping.\n"
-        "#######################################################################\n"
-    )
-    # Parse command-line arguments
-    opt = create_parser()
-
-    # Determine the device to use (CUDA, MPS, or CPU)
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-    print(f"Using device: {device}")
-
-    # Load the pretrained models
-    try:
-        cnet, ssnet, pnet_c, pnet_s, pnet_a, hnet_c, hnet_a = load_model(opt, device)
-        print("Load complete !!")
-    except Exception as e:
-        print("Error during model loading:", e)
-
-    if not os.path.exists(opt.i):
-        print(f"Error: Input directory {opt.i} does not exist.")
-    else:
-        print(f"Input directory {opt.i} exists.")
-
-    # Get the list of input files
-    pathes = sorted(
-        sorted(glob.glob(os.path.join(opt.i, "**/*.nii"), recursive=True)) +
-        sorted(glob.glob(os.path.join(opt.i, "**/*.nii.gz"), recursive=True))
-    )
-    print(f"Found {len(pathes)} NIfTI files in {opt.i}")
-
-    for path in tqdm(pathes):
-        # Extract the base name of the file (without extension)
-        basename = os.path.splitext(os.path.basename(path))[0]
-        if basename.endswith(".nii"):
-            basename = os.path.splitext(basename)[0]
-
-        # Create the output directory for the current file
-        output_dir = os.path.join(opt.o, basename)
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Load the input image, convert it to canonical form, and squeeze it
-        odata = nib.squeeze_image(nib.as_closest_canonical(nib.load(path)))
-
-        # Create a new NIfTI image with the data converted to float32
-        nii = nib.Nifti1Image(odata.get_fdata().astype(np.float32), affine=odata.affine)
-
-        # Save the new NIfTI image to the output directory
-        os.makedirs(os.path.join(output_dir, "original"), exist_ok=True)
-        nib.save(nii, os.path.join(output_dir, f"original/{basename}.nii"))
-
-        # Preprocess the input image
-        odata, data = preprocessing(path, output_dir, basename)
-
-        # Crop the image using the cropping network
-        cropped = cropping(output_dir, basename, odata, data, cnet, device)
-
-        if opt.only_face_cropping:
-            continue
-
-        # Strip the image using the stripping network
-        stripped, shift = stripping(output_dir, basename, cropped, odata, data, ssnet, device)
-
-        if opt.only_skull_stripping:
-            continue
-        
-        # Parcellate the stripped image using the parcellation networks
-        parcellated = parcellation(stripped, pnet_c, pnet_s, pnet_a, device)
-
-        # Separate the hemispheres using the hemisphere networks
-        separated = hemisphere(stripped, hnet_c, hnet_a, device)
-
-        # Postprocess the parcellated and separated image
-        output = postprocessing(parcellated, separated, shift, device)
-
-        # Generate a CSV file with volume information and save it
-        df = make_csv(output, output_dir, basename)
-
-        # Create a new NIfTI image with the processed output and save it
-        nii = nib.Nifti1Image(output.astype(np.uint16), affine=data.affine)
-        header = odata.header
-        nii = processing.conform(
-            nii,
-            out_shape=(header["dim"][1], header["dim"][2], header["dim"][3]),
-            voxel_size=(header["pixdim"][1], header["pixdim"][2], header["pixdim"][3]),
-            order=0,
-        )
-        os.makedirs(os.path.join(output_dir, "parcellated"), exist_ok=True)
-        nib.save(nii, os.path.join(output_dir, f"parcellated/{basename}_Type1_Level5.nii"))
-
-        create_parcellated_images(output, output_dir, basename, odata, data)
-
-        # Clean up temporary files
-        del odata, data
-    return
-
+def show_nifti1_image(image: nib.nifti1.Nifti1Image, ax: plt.Axes, title: str="") -> None:
+    voxel = image.get_fdata().astype("float32")
+    nonzero = voxel[voxel>0]
+    voxel = np.clip(voxel, 0, 2*np.std(nonzero)+np.mean(nonzero))
+    ax.imshow(voxel[voxel.shape[0]//2], cmap="gray")
+    ax.set_title(title)
 
 if __name__ == "__main__":
-    main()
+
+    parser = create_parser()
+    args = parser.parse_args(namespace=ParcellationArgs)
+
+    input_dir = Path.cwd() / args.input_dir
+    output_dir_root = Path.cwd() / args.output_dir
+    model_dir = Path.cwd() / args.model_dir
+
+    check_model_dir(model_dir)
+
+    input_file_paths = sorted([
+        *input_dir.glob("**/*.nii"),
+        *input_dir.glob("**/*.nii.gz"),
+    ])
+
+    input_file_paths_pbar = tqdm(input_file_paths)
+
+    for input_file_path in input_file_paths_pbar:
+
+        input_file_paths_pbar.set_description_str(f"{input_file_path.name}")
+        
+        output_dir = output_dir_root / Path(*input_file_path.parts[len(input_dir.parts):]).with_suffix("")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        parcellation_progress = tqdm(
+            total=7,
+            leave=False,
+            bar_format="[{n}/{total}]: {desc}"
+        )
+
+        # load image
+        parcellation_progress.set_description_str("load image")
+        input_image = nib.squeeze_image(nib.as_closest_canonical(nib.load(input_file_path)))
+        input_image = nib.Nifti1Image(input_image.get_fdata().astype(np.float32), affine=input_image.affine)
+        parcellation_progress.update()
+
+        # preprocess
+        parcellation_progress.set_description_str("preprocess")
+        preprocessed = preprocess(input_image)
+        parcellation_progress.update()
+
+        # face crop
+        parcellation_progress.set_description_str("face crop")
+        pass
+        parcellation_progress.update()
+        
+        # skull-strip
+        parcellation_progress.set_description_str("skull-strip")
+        pass
+        parcellation_progress.update()
+        
+        # parcellate
+        parcellation_progress.set_description_str("parcellate")
+        pass
+        parcellation_progress.update()
+        
+        # hemisphere-separate
+        parcellation_progress.set_description_str("hemisphere-separate")
+        pass
+        parcellation_progress.update()
+        
+        # postprocess
+        parcellation_progress.set_description_str("postprocess")
+        pass
+        parcellation_progress.update()
+        
+        # save image
+        parcellation_progress.set_description_str("save image")
+        pass
+        parcellation_progress.update()
+
+
+
