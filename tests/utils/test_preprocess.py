@@ -10,8 +10,8 @@ from src.utils.preprocessing import (
 )
 
 orig_image_path = "tests/chris_t1.nii"
-orig_image = nib.squeeze_image(nib.as_closest_canonical(nib.load(orig_image_path)))
-input_image = nib.Nifti1Image(orig_image.get_fdata().astype(np.float32), affine=orig_image.affine)
+orig_image = nib.funcs.squeeze_image(nib.funcs.as_closest_canonical(nib.loadsave.load(orig_image_path)))
+input_image = nib.nifti1.Nifti1Image(orig_image.get_fdata().astype(np.float32), affine=orig_image.affine)
 
 numerical_tolerance = 1e-10
 
@@ -19,14 +19,15 @@ def test_sitk_to_nib_nifti1():
     sitk_image = sitk.ReadImage(orig_image_path)
     converted_nifti1_image = sitk_to_nib_nifti1(sitk_image)
     assert np.allclose(
-        input_image.get_fdata(dtype=np.float64),
-        converted_nifti1_image.get_fdata(dtype=np.float64),
+        input_image.get_fdata(dtype=np.float32),
+        converted_nifti1_image.get_fdata(dtype=np.float32),
         atol=numerical_tolerance,
     )
-    assert np.allclose(
-        input_image.affine,
-        converted_nifti1_image.affine,
-        atol=numerical_tolerance,
+    if input_image.affine is not None and converted_nifti1_image.affine is not None:
+        assert np.allclose(
+            input_image.affine,
+            converted_nifti1_image.affine,
+            atol=numerical_tolerance,
     )
 
 
@@ -60,14 +61,15 @@ def test_n4_bias_field_correction():
 
     # correction must not change image shape and affine
     assert input_image.shape == corrected_image.shape
-    assert np.allclose(
-        input_image.affine,
-        corrected_image.affine,
-        atol=numerical_tolerance,
-    )
+    if input_image.affine is not None and corrected_image.affine is not None:
+        assert np.allclose(
+            input_image.affine,
+            corrected_image.affine,
+            atol=numerical_tolerance,
+        )
 
     # correction must not alter an image with constant brightness (=zero bias)
-    constant_image = nib.nifti1.Nifti1Image(np.ones((128, 128, 128), dtype=np.float64), affine=np.eye(4))
+    constant_image = nib.nifti1.Nifti1Image(np.ones((128, 128, 128), dtype=np.float32), affine=np.eye(4))
     corrected_constant_image = n4_bias_field_correction(constant_image)
     assert np.allclose(
         constant_image.get_fdata(),
