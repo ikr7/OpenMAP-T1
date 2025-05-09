@@ -3,7 +3,7 @@ import numpy as np
 import SimpleITK as sitk
 from nibabel import processing
 
-def sitk_to_nib_nifti1(sitk_img: sitk.Image) -> nib.Nifti1Image:
+def sitk_to_nib_nifti1(sitk_img: sitk.Image) -> nib.nifti1.Nifti1Image:
     # zyx -> xyz
     arr = sitk.GetArrayFromImage(sitk_img).transpose((2, 1, 0))
 
@@ -19,7 +19,7 @@ def sitk_to_nib_nifti1(sitk_img: sitk.Image) -> nib.Nifti1Image:
     L2R = np.diag([-1, -1, 1, 1])
     affine_ras = L2R @ affine_sitk
 
-    return nib.Nifti1Image(arr, affine_ras)
+    return nib.nifti1.Nifti1Image(arr, affine_ras)
 
 def nib_nifti1_to_sitk(nifti_image: nib.nifti1.Nifti1Image) -> sitk.Image:
     
