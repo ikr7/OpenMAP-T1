@@ -5,10 +5,10 @@ import numpy as np
 from nibabel import processing
 
 
-def normalize(voxel: np.ndarray) -> np.ndarray:
+def normalize(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float32]:
     nonzero = voxel[voxel > 0]
     voxel = np.clip(voxel, 0, np.mean(nonzero) + np.std(nonzero) * 2)
-    voxel = (voxel - np.min(voxel)) / (np.max(voxel) - np.min(voxel))
+    voxel = np.divide(voxel - np.min(voxel), (np.max(voxel) - np.min(voxel)))
     voxel = (voxel * 2) - 1
     return voxel.astype(np.float32)
 

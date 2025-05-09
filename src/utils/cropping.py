@@ -4,7 +4,7 @@ from scipy.ndimage import binary_closing
 
 from utils.functions import normalize
 
-def crop(voxel: np.ndarray, model: torch.nn.Module, device: torch.device) -> torch.Tensor:
+def crop(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: torch.device) -> torch.Tensor:
     """
     Crops the given voxel data using the provided model and device.
 
@@ -27,7 +27,7 @@ def crop(voxel: np.ndarray, model: torch.nn.Module, device: torch.device) -> tor
         return output.reshape(256, 256, 256)
 
 
-def closing(voxel: np.ndarray) -> np.ndarray:
+def closing(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float32]:
     """
     Perform a binary closing operation on a 3D voxel array.
 
@@ -73,7 +73,7 @@ def closing(voxel: np.ndarray) -> np.ndarray:
 
 #     return cropped
 
-def cropping(orig_image: np.ndarray, cnet: torch.nn.Module) -> np.ndarray:
+def cropping(orig_image: np.typing.NDArray[np.float32], cnet: torch.nn.Module) -> np.typing.NDArray[np.float32]:
     
     device = next(cnet.parameters()).device
 

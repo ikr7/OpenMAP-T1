@@ -67,7 +67,7 @@ def check_model_dir(model_dir: Path) -> None:
         raise Exception(f"{model_dir} does not contain ./CNet/CNet.pth")
 
 
-def show_image(voxel: np.ndarray, ax: matplotlib.axes.Axes, title: str="") -> None:
+def show_image(voxel: np.typing.NDArray[np.float32], ax: matplotlib.axes.Axes, title: str="") -> None:
     nonzero = voxel[voxel>0]
     voxel = np.clip(voxel, 0, 2*np.std(nonzero)+np.mean(nonzero))
     ax.imshow(voxel[voxel.shape[0]//2], cmap="gray")

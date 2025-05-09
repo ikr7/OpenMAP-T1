@@ -67,7 +67,7 @@ def conform_dimension(image: nib.nifti1.Nifti1Image) -> nib.nifti1.Nifti1Image:
     return processing.conform(image, out_shape=(256, 256, 256), voxel_size=(1.0, 1.0, 1.0), order=1)
 
 
-def preprocess(image: nib.nifti1.Nifti1Image) -> np.ndarray:
+def preprocess(image: nib.nifti1.Nifti1Image) -> np.typing.NDArray[np.float32]:
     n4_corrected_image = n4_bias_field_correction(image)
     conformed_image = conform_dimension(n4_corrected_image)
     return conformed_image.get_fdata().astype(np.float32)
