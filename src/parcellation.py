@@ -2,11 +2,17 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib.axes
 import nibabel as nib
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+from utils.cropping import cropping
+from utils.load_model import (
+    load_cnet
+)
 from utils.preprocessing import preprocess
 
 @dataclass
@@ -54,17 +60,19 @@ def create_parser() -> argparse.ArgumentParser:
 
     return parser
 
+
 def check_model_dir(model_dir: Path) -> None:
     cnet_path = model_dir / "CNet/CNet.pth"
     if not (cnet_path.exists() and cnet_path.is_file()):
-        raise f"{model_dir} does not contain ./CNet/CNet.pth"
+        raise Exception(f"{model_dir} does not contain ./CNet/CNet.pth")
 
-def show_nifti1_image(image: nib.nifti1.Nifti1Image, ax: plt.Axes, title: str="") -> None:
-    voxel = image.get_fdata().astype("float32")
+
+def show_image(voxel: np.ndarray, ax: matplotlib.axes.Axes, title: str="") -> None:
     nonzero = voxel[voxel>0]
     voxel = np.clip(voxel, 0, 2*np.std(nonzero)+np.mean(nonzero))
     ax.imshow(voxel[voxel.shape[0]//2], cmap="gray")
     ax.set_title(title)
+
 
 if __name__ == "__main__":
 
@@ -76,6 +84,8 @@ if __name__ == "__main__":
     model_dir = Path.cwd() / args.model_dir
 
     check_model_dir(model_dir)
+
+    cnet = load_cnet(model_dir).to("cuda")
 
     input_file_paths = sorted([
         *input_dir.glob("**/*.nii"),
@@ -99,8 +109,10 @@ if __name__ == "__main__":
 
         # load image
         parcellation_progress.set_description_str("load image")
-        input_image = nib.squeeze_image(nib.as_closest_canonical(nib.load(input_file_path)))
-        input_image = nib.Nifti1Image(input_image.get_fdata().astype(np.float32), affine=input_image.affine)
+
+        orig_image = nib.funcs.squeeze_image(nib.funcs.as_closest_canonical(nib.loadsave.load(input_file_path)))
+        input_image = nib.nifti1.Nifti1Image(orig_image.get_fdata().astype(np.float32), affine=orig_image.affine)
+        
         parcellation_progress.update()
 
         # preprocess
@@ -110,9 +122,9 @@ if __name__ == "__main__":
 
         # face crop
         parcellation_progress.set_description_str("face crop")
-        pass
+        cropped = cropping(preprocessed, cnet)
         parcellation_progress.update()
-        
+
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
         pass

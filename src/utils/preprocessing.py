@@ -11,7 +11,7 @@ def sitk_to_nib_nifti1(sitk_img: sitk.Image) -> nib.nifti1.Nifti1Image:
     spacing   = np.array(sitk_img.GetSpacing())
     origin    = np.array(sitk_img.GetOrigin())
     direction = np.array(sitk_img.GetDirection()).reshape(3, 3)
-    affine_sitk = np.eye(4, dtype=np.float64)
+    affine_sitk = np.eye(4, dtype=np.float32)
     affine_sitk[:3, :3] = direction * spacing[:, None]
     affine_sitk[:3,  3] = origin
 
@@ -67,7 +67,7 @@ def conform_dimension(image: nib.nifti1.Nifti1Image) -> nib.nifti1.Nifti1Image:
     return processing.conform(image, out_shape=(256, 256, 256), voxel_size=(1.0, 1.0, 1.0), order=1)
 
 
-def preprocess(image: nib.nifti1.Nifti1Image) -> nib.nifti1.Nifti1Image:
+def preprocess(image: nib.nifti1.Nifti1Image) -> np.ndarray:
     n4_corrected_image = n4_bias_field_correction(image)
     conformed_image = conform_dimension(n4_corrected_image)
-    return conformed_image
+    return conformed_image.get_fdata().astype(np.float32)
