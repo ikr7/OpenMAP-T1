@@ -2,9 +2,6 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-import matplotlib
-import matplotlib.axes
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import torch
@@ -68,13 +65,6 @@ def check_model_dir(model_dir: Path) -> None:
     cnet_path = model_dir / "CNet/CNet.pth"
     if not (cnet_path.exists() and cnet_path.is_file()):
         raise Exception(f"{model_dir} does not contain ./CNet/CNet.pth")
-
-
-def show_image(voxel: np.typing.NDArray[np.float32], ax: matplotlib.axes.Axes, title: str = "") -> None:
-    nonzero = voxel[voxel > 0]
-    voxel = np.clip(voxel, 0, 2 * np.std(nonzero) + np.mean(nonzero))
-    ax.imshow(voxel[voxel.shape[0] // 2], cmap="gray")
-    ax.set_title(title)
 
 
 if __name__ == "__main__":
@@ -144,14 +134,6 @@ if __name__ == "__main__":
         parcellation_progress.set_description_str("parcellate")
         parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
         parcellation_progress.update()
-
-        # fig = plt.figure()
-        # show_image(preprocessed, fig.add_subplot(2, 2, 1), "preprocessed")
-        # show_image(cropped, fig.add_subplot(2, 2, 2), "cropped")
-        # show_image(stripped, fig.add_subplot(2, 2, 3), "stripped")
-        # show_image(parcellation_map, fig.add_subplot(2, 2, 4), "parcellation_map")
-        # fig.show()
-        # breakpoint()
 
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
