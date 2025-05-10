@@ -12,4 +12,6 @@
         "--profile",
         "black"
     ],
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
 }
