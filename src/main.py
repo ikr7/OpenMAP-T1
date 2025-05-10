@@ -28,7 +28,7 @@ class ParcellationArgs:
     input_dir: Path
     output_dir: Path
     model_dir: Path
-    stop_after: Literal["cropping", "stripping", "parcellation"]
+    stop_after: Literal["cropping", "stripping"]
     no_intermediate_images: bool
 
 
@@ -64,7 +64,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--stop-after",
         help="perform face cropping only",
         dest="stop_after",
-        choices=["cropping", "stripping", "parcellation"],
+        choices=["cropping", "stripping"],
         default="parcellation",
     )
 
