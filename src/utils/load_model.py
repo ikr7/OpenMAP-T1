@@ -13,6 +13,11 @@ def load_cnet(model_dir: Path) -> torch.nn.Module:
     cnet.load_state_dict(torch.load(model_dir / "CNet" / "CNet.pth", weights_only=True))
     return cnet
 
+def load_ssnet(model_dir: Path) -> torch.nn.Module:
+    ssnet = UNet(1, 1)
+    ssnet.load_state_dict(torch.load(model_dir / "SSNet" / "SSNet.pth", weights_only=True))
+    return ssnet
+
 # def load_model(opt, device):
 #     """
 #     This function loads multiple pre-trained models and sets them to evaluation mode.

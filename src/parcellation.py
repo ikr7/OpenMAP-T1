@@ -7,13 +7,16 @@ import nibabel as nib
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import torch
 from tqdm import tqdm
 
 from utils.cropping import cropping
 from utils.load_model import (
-    load_cnet
+    load_cnet,
+    load_ssnet,
 )
 from utils.preprocessing import preprocess
+from utils.stripping import stripping
 
 @dataclass
 class ParcellationArgs:
@@ -85,7 +88,10 @@ if __name__ == "__main__":
 
     check_model_dir(model_dir)
 
-    cnet = load_cnet(model_dir).to("cuda")
+    device = torch.device("cuda")
+
+    cnet = load_cnet(model_dir).to(device)
+    ssnet = load_ssnet(model_dir).to(device)
 
     input_file_paths = sorted([
         *input_dir.glob("**/*.nii"),
@@ -127,9 +133,9 @@ if __name__ == "__main__":
 
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
-        pass
+        stripped, shift = stripping(cropped, ssnet)
         parcellation_progress.update()
-        
+
         # parcellate
         parcellation_progress.set_description_str("parcellate")
         pass
