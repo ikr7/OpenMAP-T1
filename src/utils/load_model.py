@@ -18,6 +18,16 @@ def load_ssnet(model_dir: Path) -> torch.nn.Module:
     ssnet.load_state_dict(torch.load(model_dir / "SSNet" / "SSNet.pth", weights_only=True))
     return ssnet
 
+def load_pnet(model_dir: Path) -> tuple[torch.nn.Module, torch.nn.Module, torch.nn.Module]:
+    pnet_coronal = UNet(3, 142)
+    pnet_coronal.load_state_dict(torch.load(model_dir / "PNet" / "coronal.pth", weights_only=True))
+    pnet_sagittal = UNet(3, 142)
+    pnet_sagittal.load_state_dict(torch.load(model_dir / "PNet" / "sagittal.pth", weights_only=True))
+    pnet_axial = UNet(3, 142)
+    pnet_axial.load_state_dict(torch.load(model_dir / "PNet" / "axial.pth", weights_only=True))
+    return pnet_coronal,pnet_sagittal, pnet_axial
+
+
 # def load_model(opt, device):
 #     """
 #     This function loads multiple pre-trained models and sets them to evaluation mode.

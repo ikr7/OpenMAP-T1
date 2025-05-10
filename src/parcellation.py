@@ -13,8 +13,10 @@ from tqdm import tqdm
 from utils.cropping import cropping
 from utils.load_model import (
     load_cnet,
+    load_pnet,
     load_ssnet,
 )
+from utils.parcellation import parcellation
 from utils.preprocessing import preprocess
 from utils.stripping import stripping
 
@@ -93,6 +95,12 @@ if __name__ == "__main__":
     cnet = load_cnet(model_dir).to(device)
     ssnet = load_ssnet(model_dir).to(device)
 
+    pnet_coronal, pnet_sagittal, pnet_axial = load_pnet(model_dir)
+
+    pnet_coronal = pnet_coronal.to(device)
+    pnet_sagittal = pnet_sagittal.to(device)
+    pnet_axial = pnet_axial.to(device)
+    
     input_file_paths = sorted([
         *input_dir.glob("**/*.nii"),
         *input_dir.glob("**/*.nii.gz"),
@@ -138,8 +146,16 @@ if __name__ == "__main__":
 
         # parcellate
         parcellation_progress.set_description_str("parcellate")
-        pass
+        parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
         parcellation_progress.update()
+
+        # fig = plt.figure()
+        # show_image(preprocessed, fig.add_subplot(2, 2, 1), "preprocessed")
+        # show_image(cropped, fig.add_subplot(2, 2, 2), "cropped")
+        # show_image(stripped, fig.add_subplot(2, 2, 3), "stripped")
+        # show_image(parcellation_map, fig.add_subplot(2, 2, 4), "parcellation_map")
+        # fig.show()
+        # breakpoint()
         
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
