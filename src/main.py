@@ -10,7 +10,14 @@ from tqdm import tqdm
 
 from utils.cropping import cropping
 from utils.functions import save_voxel_with_reference_image
-from utils.load_model import check_model_dir, load_cnet, load_pnet, load_ssnet
+from utils.hemisphere import hemisphere
+from utils.load_model import (
+    check_model_dir,
+    load_cnet,
+    load_hnet,
+    load_pnet,
+    load_ssnet,
+)
 from utils.parcellation import parcellation
 from utils.preprocessing import preprocess
 from utils.stripping import stripping
@@ -94,6 +101,11 @@ if __name__ == "__main__":
     pnet_sagittal = pnet_sagittal.to(device)
     pnet_axial = pnet_axial.to(device)
 
+    hnet_coronal, hnet_axial = load_hnet(model_dir)
+
+    hnet_coronal = hnet_coronal.to(device)
+    hnet_axial = hnet_axial.to(device)
+
     input_file_paths = sorted(
         [
             *input_dir.glob("**/*.nii"),
@@ -158,7 +170,11 @@ if __name__ == "__main__":
 
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
-        pass
+        hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
+        if args.save_intermediate_images:
+            save_voxel_with_reference_image(
+                hemisphere_map, orig_image, output_dir / f"{input_file_path.stem}_hemisphere.nii"
+            )
         parcellation_progress.update()
 
         # postprocess

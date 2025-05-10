@@ -14,9 +14,7 @@ def normalize(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.floa
     return voxel.astype(np.float32)
 
 
-def save_voxel_with_reference_image(
-    voxel: np.typing.NDArray[np.float32], reference_image: nib.nifti1.Nifti1Image, dest_path: Path
-):
+def save_voxel_with_reference_image(voxel: np.typing.NDArray, reference_image: nib.nifti1.Nifti1Image, dest_path: Path):
 
     out_shape = (
         reference_image.header["dim"][1],

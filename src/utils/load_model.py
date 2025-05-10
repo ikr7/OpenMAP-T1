@@ -48,6 +48,14 @@ def load_pnet(model_dir: Path) -> tuple[torch.nn.Module, torch.nn.Module, torch.
     return pnet_coronal, pnet_sagittal, pnet_axial
 
 
+def load_hnet(model_dir: Path) -> tuple[torch.nn.Module, torch.nn.Module]:
+    hnet_coronal = UNet(1, 3)
+    hnet_coronal.load_state_dict(torch.load(model_dir / "HNet" / "coronal.pth", weights_only=True))
+    hnet_axial = UNet(1, 3)
+    hnet_axial.load_state_dict(torch.load(model_dir / "HNet" / "axial.pth", weights_only=True))
+    return hnet_coronal, hnet_axial
+
+
 # def load_model(opt, device):
 #     """
 #     This function loads multiple pre-trained models and sets them to evaluation mode.
