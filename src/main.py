@@ -171,10 +171,6 @@ if __name__ == "__main__":
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
         hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
-        if not args.no_intermediate_images:
-            save_voxel_with_reference_image(
-                hemisphere_map, orig_image, output_dir / f"{input_file_path.stem}_hemisphere.nii"
-            )
         parcellation_progress.update()
 
         # postprocess
