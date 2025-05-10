@@ -43,8 +43,10 @@ def strip(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: 
         return output.reshape(256, 256, 256)
 
 
-def stripping(orig_image: np.typing.NDArray[np.float32], ssnet: torch.nn.Module) -> tuple[np.typing.NDArray[np.float32], tuple[int, int, int]]:
-    
+def stripping(
+    orig_image: np.typing.NDArray[np.float32], ssnet: torch.nn.Module
+) -> tuple[np.typing.NDArray[np.float32], tuple[int, int, int]]:
+
     device = next(ssnet.parameters()).device
 
     sagittal_voxel = normalize(orig_image)
@@ -56,7 +58,7 @@ def stripping(orig_image: np.typing.NDArray[np.float32], ssnet: torch.nn.Module)
     axial_prob = strip(axial_voxel, ssnet, device).permute(2, 1, 0)
 
     ensembled_mask = (((sagittal_prob + coronal_prob + axial_prob) / 3) > 0.5).cpu().numpy()
-    
+
     stripped_image = orig_image * ensembled_mask
 
     # mask centroid
@@ -64,9 +66,9 @@ def stripping(orig_image: np.typing.NDArray[np.float32], ssnet: torch.nn.Module)
     shift = (128 - cx, 120 - cy, 128 - cz)
 
     shifted_image = np.roll(stripped_image, (shift), (0, 1, 2))
-    
+
     cropped_shifted_image = shifted_image[32:-32, 16:-16, 32:-32]
-    
+
     return cropped_shifted_image, shift
 
 

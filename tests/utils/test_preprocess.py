@@ -15,6 +15,7 @@ input_image = nib.nifti1.Nifti1Image(orig_image.get_fdata().astype(np.float32), 
 
 numerical_tolerance = 1e-10
 
+
 def test_sitk_to_nib_nifti1():
     sitk_image = sitk.ReadImage(orig_image_path)
     converted_nifti1_image = sitk_to_nib_nifti1(sitk_image)
@@ -28,7 +29,7 @@ def test_sitk_to_nib_nifti1():
             input_image.affine,
             converted_nifti1_image.affine,
             atol=numerical_tolerance,
-    )
+        )
 
 
 def test_nib_nifti1_to_sitk():
@@ -78,6 +79,7 @@ def test_n4_bias_field_correction():
     )
 
     # todo: add more tests with artifical bias field
+
 
 def test_conform_dimension():
     conformed_image = conform_dimension(input_image)

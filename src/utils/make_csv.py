@@ -59,9 +59,7 @@ def make_csv(parcellation, output_dir, basename):
     """
     # LEVEL_DIR を基準にテキストファイルの絶対パスを作成
     csv_path = os.path.join(LEVEL_DIR, "Level5.txt")
-    df_Type1_level5 = (
-        pd.read_table(csv_path, names=["number", "region"]).astype("str").set_index("number")
-    )
+    df_Type1_level5 = pd.read_table(csv_path, names=["number", "region"]).astype("str").set_index("number")
     for i in range(1, 281):
         volume = np.count_nonzero(parcellation == i)
         df_Type1_level5.loc[str(i), basename] = volume
@@ -79,36 +77,16 @@ def make_csv(parcellation, output_dir, basename):
     df_Type2_level1 = change_level(df_Type1_level5, level="Type2_Level1")
 
     os.makedirs(os.path.join(output_dir, "csv"), exist_ok=True)
-    df_Type1_level5.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level5.csv"), index=False
-    )
-    df_Type1_level4.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level4.csv"), index=False
-    )
-    df_Type1_level3.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level3.csv"), index=False
-    )
-    df_Type1_level2.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level2.csv"), index=False
-    )
-    df_Type1_level1.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level1.csv"), index=False
-    )
+    df_Type1_level5.to_csv(os.path.join(output_dir, f"csv/{basename}_Type1_Level5.csv"), index=False)
+    df_Type1_level4.to_csv(os.path.join(output_dir, f"csv/{basename}_Type1_Level4.csv"), index=False)
+    df_Type1_level3.to_csv(os.path.join(output_dir, f"csv/{basename}_Type1_Level3.csv"), index=False)
+    df_Type1_level2.to_csv(os.path.join(output_dir, f"csv/{basename}_Type1_Level2.csv"), index=False)
+    df_Type1_level1.to_csv(os.path.join(output_dir, f"csv/{basename}_Type1_Level1.csv"), index=False)
 
-    df_Type2_level5.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level5.csv"), index=False
-    )
-    df_Type2_level4.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level4.csv"), index=False
-    )
-    df_Type2_level3.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level3.csv"), index=False
-    )
-    df_Type2_level2.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level2.csv"), index=False
-    )
-    df_Type2_level1.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level1.csv"), index=False
-    )
+    df_Type2_level5.to_csv(os.path.join(output_dir, f"csv/{basename}_Type2_Level5.csv"), index=False)
+    df_Type2_level4.to_csv(os.path.join(output_dir, f"csv/{basename}_Type2_Level4.csv"), index=False)
+    df_Type2_level3.to_csv(os.path.join(output_dir, f"csv/{basename}_Type2_Level3.csv"), index=False)
+    df_Type2_level2.to_csv(os.path.join(output_dir, f"csv/{basename}_Type2_Level2.csv"), index=False)
+    df_Type2_level1.to_csv(os.path.join(output_dir, f"csv/{basename}_Type2_Level1.csv"), index=False)
 
     return df_Type1_level5

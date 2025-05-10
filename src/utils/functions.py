@@ -24,7 +24,7 @@ def reimburse_conform(output_dir, basename, suffix, odata, data, output):
     )
     os.makedirs(os.path.join(output_dir, f"{suffix}"), exist_ok=True)
     nib.save(nii, os.path.join(output_dir, f"{suffix}/{basename}_{suffix}_mask.nii"))
-    
+
     result = odata.get_fdata().astype("float32") * nii.get_fdata().astype("int16")
     nii = nib.Nifti1Image(result.astype(np.float32), affine=odata.affine)
     nib.save(nii, os.path.join(output_dir, f"{suffix}/{basename}_{suffix}.nii"))

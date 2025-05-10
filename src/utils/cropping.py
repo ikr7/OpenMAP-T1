@@ -4,6 +4,7 @@ from scipy.ndimage import binary_closing
 
 from utils.functions import normalize
 
+
 def crop(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: torch.device) -> torch.Tensor:
     """
     Crops the given voxel data using the provided model and device.
@@ -73,8 +74,9 @@ def closing(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float3
 
 #     return cropped
 
+
 def cropping(orig_image: np.typing.NDArray[np.float32], cnet: torch.nn.Module) -> np.typing.NDArray[np.float32]:
-    
+
     device = next(cnet.parameters()).device
 
     sagittal_voxel = normalize(orig_image)

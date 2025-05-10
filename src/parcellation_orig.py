@@ -47,7 +47,7 @@ def create_parser():
         required=True,
         help="Folder of pretrained models. Indicates the location of the pretrained models to be used for processing.",
     )
-    
+
     # Create a mutually exclusive group for processing modes.
     # If one of these options is specified, only that processing step is performed and the remaining steps are skipped.
     group = parser.add_mutually_exclusive_group()
@@ -61,7 +61,7 @@ def create_parser():
         action="store_true",
         help="Perform only skull stripping. If specified, only skull stripping will be executed and all other processing steps will be skipped.",
     )
-    
+
     args = parser.parse_args()
     print("Parsed arguments:", args)
     return args
@@ -130,8 +130,8 @@ def main():
 
     # Get the list of input files
     pathes = sorted(
-        sorted(glob.glob(os.path.join(opt.i, "**/*.nii"), recursive=True)) +
-        sorted(glob.glob(os.path.join(opt.i, "**/*.nii.gz"), recursive=True))
+        sorted(glob.glob(os.path.join(opt.i, "**/*.nii"), recursive=True))
+        + sorted(glob.glob(os.path.join(opt.i, "**/*.nii.gz"), recursive=True))
     )
     print(f"Found {len(pathes)} NIfTI files in {opt.i}")
 
@@ -169,7 +169,7 @@ def main():
 
         if opt.only_skull_stripping:
             continue
-        
+
         # Parcellate the stripped image using the parcellation networks
         parcellated = parcellation(stripped, pnet_c, pnet_s, pnet_a, device)
 

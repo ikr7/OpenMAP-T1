@@ -13,10 +13,12 @@ def load_cnet(model_dir: Path) -> torch.nn.Module:
     cnet.load_state_dict(torch.load(model_dir / "CNet" / "CNet.pth", weights_only=True))
     return cnet
 
+
 def load_ssnet(model_dir: Path) -> torch.nn.Module:
     ssnet = UNet(1, 1)
     ssnet.load_state_dict(torch.load(model_dir / "SSNet" / "SSNet.pth", weights_only=True))
     return ssnet
+
 
 def load_pnet(model_dir: Path) -> tuple[torch.nn.Module, torch.nn.Module, torch.nn.Module]:
     pnet_coronal = UNet(3, 142)
@@ -25,7 +27,7 @@ def load_pnet(model_dir: Path) -> tuple[torch.nn.Module, torch.nn.Module, torch.
     pnet_sagittal.load_state_dict(torch.load(model_dir / "PNet" / "sagittal.pth", weights_only=True))
     pnet_axial = UNet(3, 142)
     pnet_axial.load_state_dict(torch.load(model_dir / "PNet" / "axial.pth", weights_only=True))
-    return pnet_coronal,pnet_sagittal, pnet_axial
+    return pnet_coronal, pnet_sagittal, pnet_axial
 
 
 # def load_model(opt, device):

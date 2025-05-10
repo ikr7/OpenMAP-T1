@@ -7,10 +7,7 @@ from utils.functions import normalize
 
 
 def parcellate(
-    voxel: np.typing.NDArray[np.float32],
-    model: torch.nn.Module,
-    device: torch.device,
-    mode: Literal["c", "s", "a"]
+    voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: torch.device, mode: Literal["c", "s", "a"]
 ) -> torch.Tensor:
     """
     Parcellates a given voxel volume using a specified model and mode.
@@ -24,7 +21,7 @@ def parcellate(
     Returns:
         torch.Tensor: The parcellated voxel volume.
     """
-    
+
     match mode:
         case "c":
             stack = (224, 192, 192)
@@ -60,28 +57,30 @@ def parcellate(
         # Reshape the box tensor to the desired output shape
         return box.reshape(stack[0], 142, stack[1], stack[2])
 
+
 def parcellation(
     orig_image: np.typing.NDArray[np.float32],
     pnet_coronal: torch.nn.Module,
     pnet_sagittal: torch.nn.Module,
     pnet_axial: torch.nn.Module,
 ) -> np.typing.NDArray[np.float32]:
-    
+
     device = next(pnet_coronal.parameters()).device
-    
+
     sagittal_image = normalize(orig_image)
     coronal_image = sagittal_image.transpose(1, 2, 0)
     axial_image = sagittal_image.transpose(2, 1, 0)
 
     ensambled_prob = (
-        parcellate(sagittal_image, pnet_sagittal, device, "s").permute(1, 0, 2, 3) +
-        parcellate(coronal_image, pnet_coronal, device, "c").permute(1, 3, 0, 2) +
-        parcellate(axial_image, pnet_axial, device, "a").permute(1, 3, 2, 0)
+        parcellate(sagittal_image, pnet_sagittal, device, "s").permute(1, 0, 2, 3)
+        + parcellate(coronal_image, pnet_coronal, device, "c").permute(1, 3, 0, 2)
+        + parcellate(axial_image, pnet_axial, device, "a").permute(1, 3, 2, 0)
     ) / 3
 
     parcellation_map = torch.argmax(ensambled_prob, 0).numpy()
 
     return parcellation_map
+
 
 # def parcellation(voxel, pnet_c, pnet_s, pnet_a, device):
 #     """
