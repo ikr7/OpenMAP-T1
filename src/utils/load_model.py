@@ -8,6 +8,24 @@ from utils.network import UNet
 # PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 
 
+def check_model_dir(model_dir: Path) -> None:
+
+    weight_paths = [
+        "CNet/CNet.pth",
+        "SSNet/SSNet.pth",
+        "PNet/coronal.pth",
+        "PNet/sagittal.pth",
+        "PNet/axial.pth",
+        "HNet/coronal.pth",
+        "HNet/axial.pth",
+    ]
+
+    for weight_path in weight_paths:
+        resolved_weight_path = model_dir / weight_path
+        if not (resolved_weight_path.exists() and resolved_weight_path.is_file()):
+            raise Exception(f"{model_dir} does not contain {weight_path}")
+
+
 def load_cnet(model_dir: Path) -> torch.nn.Module:
     cnet = UNet(1, 1)
     cnet.load_state_dict(torch.load(model_dir / "CNet" / "CNet.pth", weights_only=True))

@@ -1,6 +1,7 @@
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import nibabel as nib
 import numpy as np
@@ -8,7 +9,7 @@ import torch
 from tqdm import tqdm
 
 from utils.cropping import cropping
-from utils.load_model import load_cnet, load_pnet, load_ssnet
+from utils.load_model import check_model_dir, load_cnet, load_pnet, load_ssnet
 from utils.parcellation import parcellation
 from utils.preprocessing import preprocess
 from utils.stripping import stripping
@@ -19,7 +20,8 @@ class ParcellationArgs:
     input_dir: Path
     output_dir: Path
     model_dir: Path
-    only_face_cropping: bool
+    stop_after: Literal["cropping", "stripping", "parcellation"]
+    save_intermediate_images: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -51,20 +53,22 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--only-face-cropping",
+        "--stop-after",
         help="perform face cropping only",
-        dest="only_face_cropping",
+        dest="stop_after",
+        choices=["cropping", "stripping", "parcellation"],
+        default="parcellation",
+    )
+
+    parser.add_argument(
+        "--save-intermediate-images",
+        help="save intermediate images",
+        dest="save_intermediate_images",
         action="store_true",
         default=False,
     )
 
     return parser
-
-
-def check_model_dir(model_dir: Path) -> None:
-    cnet_path = model_dir / "CNet/CNet.pth"
-    if not (cnet_path.exists() and cnet_path.is_file()):
-        raise Exception(f"{model_dir} does not contain ./CNet/CNet.pth")
 
 
 if __name__ == "__main__":
@@ -122,13 +126,29 @@ if __name__ == "__main__":
 
         # face crop
         parcellation_progress.set_description_str("face crop")
+
         cropped = cropping(preprocessed, cnet)
+
+        if args.save_intermediate_images:
+            pass  # todo: save cropped image
+
         parcellation_progress.update()
+
+        if args.stop_after == "cropping":
+            continue
 
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
+
         stripped, shift = stripping(cropped, ssnet)
+
+        if args.save_intermediate_images:
+            pass  # todo: save stripped image
+
         parcellation_progress.update()
+
+        if args.stop_after == "stripping":
+            continue
 
         # parcellate
         parcellation_progress.set_description_str("parcellate")
