@@ -63,7 +63,7 @@ def parcellation(
     pnet_coronal: torch.nn.Module,
     pnet_sagittal: torch.nn.Module,
     pnet_axial: torch.nn.Module,
-) -> np.typing.NDArray[np.float32]:
+) -> np.typing.NDArray[np.uint16]:
 
     device = next(pnet_coronal.parameters()).device
 
@@ -77,7 +77,7 @@ def parcellation(
         + parcellate(axial_image, pnet_axial, device, "a").permute(1, 3, 2, 0)
     ) / 3
 
-    parcellation_map = torch.argmax(ensambled_prob, 0).numpy()
+    parcellation_map = torch.argmax(ensambled_prob, 0).numpy().astype(np.uint16)
 
     return parcellation_map
 
