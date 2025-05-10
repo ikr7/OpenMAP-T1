@@ -29,7 +29,7 @@ class ParcellationArgs:
     output_dir: Path
     model_dir: Path
     stop_after: Literal["cropping", "stripping", "parcellation"]
-    save_intermediate_images: bool
+    no_intermediate_images: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -69,9 +69,9 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--save-intermediate-images",
-        help="save intermediate images",
-        dest="save_intermediate_images",
+        "--no-intermediate-images",
+        help="no intermediate images",
+        dest="no_intermediate_images",
         action="store_true",
         default=False,
     )
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
         cropped = cropping(preprocessed, cnet)
 
-        if args.save_intermediate_images:
+        if not args.no_intermediate_images:
             save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
 
         parcellation_progress.update()
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
         stripped, shift = stripping(cropped, ssnet)
 
-        if args.save_intermediate_images:
+        if not args.no_intermediate_images:
             save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
 
         parcellation_progress.update()
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
         hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
-        if args.save_intermediate_images:
+        if not args.no_intermediate_images:
             save_voxel_with_reference_image(
                 hemisphere_map, orig_image, output_dir / f"{input_file_path.stem}_hemisphere.nii"
             )
