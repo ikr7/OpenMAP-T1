@@ -9,6 +9,7 @@ import torch
 from tqdm import tqdm
 
 from utils.cropping import cropping
+from utils.functions import save_voxel_with_reference_image
 from utils.load_model import check_model_dir, load_cnet, load_pnet, load_ssnet
 from utils.parcellation import parcellation
 from utils.preprocessing import preprocess
@@ -130,7 +131,7 @@ if __name__ == "__main__":
         cropped = cropping(preprocessed, cnet)
 
         if args.save_intermediate_images:
-            pass  # todo: save cropped image
+            save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
 
         parcellation_progress.update()
 
@@ -143,7 +144,7 @@ if __name__ == "__main__":
         stripped, shift = stripping(cropped, ssnet)
 
         if args.save_intermediate_images:
-            pass  # todo: save stripped image
+            save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
 
         parcellation_progress.update()
 
