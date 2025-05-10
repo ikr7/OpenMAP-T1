@@ -2,20 +2,16 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib
 import matplotlib.axes
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 
 from utils.cropping import cropping
-from utils.load_model import (
-    load_cnet,
-    load_pnet,
-    load_ssnet,
-)
+from utils.load_model import load_cnet, load_pnet, load_ssnet
 from utils.parcellation import parcellation
 from utils.preprocessing import preprocess
 from utils.stripping import stripping
@@ -41,7 +37,13 @@ def create_parser() -> argparse.ArgumentParser:
         type=Path,
     )
 
-    parser.add_argument("--output-dir", help="output directory", dest="output_dir", required=True, type=Path)
+    parser.add_argument(
+        "--output-dir",
+        help="output directory for parcellation results and intermidiate files",
+        dest="output_dir",
+        required=True,
+        type=Path,
+    )
 
     parser.add_argument(
         "--model-dir",
