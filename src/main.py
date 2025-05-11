@@ -88,6 +88,12 @@ if __name__ == "__main__":
     output_dir_root = Path.cwd() / args.output_dir
     model_dir = Path.cwd() / args.model_dir
 
+    if not (input_dir.exists() and input_dir.is_dir()):
+        raise Exception(f"{input_dir} does not exist or is not a directory")
+
+    if not (model_dir.exists() and model_dir.is_dir()):
+        raise Exception(f"{model_dir} does not exist or is not a directory")
+
     check_model_dir(model_dir)
 
     device = torch.device("cuda")
