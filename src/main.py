@@ -19,6 +19,7 @@ from utils.load_model import (
     load_ssnet,
 )
 from utils.parcellation import parcellation
+from utils.postprocessing import combine_maps
 from utils.preprocessing import preprocess
 from utils.stripping import stripping
 
@@ -181,10 +182,11 @@ if __name__ == "__main__":
 
         # postprocess
         parcellation_progress.set_description_str("postprocess")
-        pass
+        jhu_atlas_map = combine_maps(parcellation_map, hemisphere_map, shift)
         parcellation_progress.update()
 
         # save image
         parcellation_progress.set_description_str("save image")
-        pass
+        jhu_atlas_map_nii = nib.nifti1.Nifti1Image(jhu_atlas_map, affine=orig_image.affine, header=orig_image.header)
+        nib.loadsave.save(jhu_atlas_map_nii, output_dir / f"{input_file_path.stem}_Type1_Level5.nii")
         parcellation_progress.update()
