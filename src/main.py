@@ -62,7 +62,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--stop-after",
-        help="perform face cropping only",
+        help="stop processing after specified operation",
         dest="stop_after",
         choices=["cropping", "stripping"],
         default="parcellation",
@@ -70,7 +70,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--no-intermediate-images",
-        help="no intermediate images",
+        help="do not save intermediate images",
         dest="no_intermediate_images",
         action="store_true",
         default=False,
