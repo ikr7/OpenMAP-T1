@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -32,6 +33,7 @@ class ParcellationArgs:
     model_dir: Path
     stop_after: Literal["cropping", "stripping"]
     no_intermediate_images: bool
+    use_amp: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -74,6 +76,14 @@ def create_parser() -> argparse.ArgumentParser:
         "--no-intermediate-images",
         help="do not save intermediate images",
         dest="no_intermediate_images",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--use-amp",
+        help="use amp (automatic mixed precision)",
+        dest="use_amp",
         action="store_true",
         default=False,
     )
@@ -145,7 +155,8 @@ if __name__ == "__main__":
 
         # face crop
         parcellation_progress.set_description_str("face crop")
-        cropped = cropping(preprocessed, cnet)
+        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+            cropped = cropping(preprocessed, cnet)
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
         parcellation_progress.update()
@@ -155,7 +166,8 @@ if __name__ == "__main__":
 
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
-        stripped, shift = stripping(cropped, ssnet)
+        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+            stripped, shift = stripping(cropped, ssnet)
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
         parcellation_progress.update()
@@ -165,12 +177,14 @@ if __name__ == "__main__":
 
         # parcellate
         parcellation_progress.set_description_str("parcellate")
-        parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
+        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+            parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
         parcellation_progress.update()
 
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
-        hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
+        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+            hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
         parcellation_progress.update()
 
         # postprocess
