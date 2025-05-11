@@ -133,10 +133,8 @@ if __name__ == "__main__":
 
         # load image
         parcellation_progress.set_description_str("load image")
-
         orig_image = nib.funcs.squeeze_image(nib.funcs.as_closest_canonical(nib.loadsave.load(input_file_path)))
         input_image = nib.nifti1.Nifti1Image(orig_image.get_fdata().astype(np.float32), affine=orig_image.affine)
-
         parcellation_progress.update()
 
         # preprocess
@@ -146,12 +144,9 @@ if __name__ == "__main__":
 
         # face crop
         parcellation_progress.set_description_str("face crop")
-
         cropped = cropping(preprocessed, cnet)
-
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
-
         parcellation_progress.update()
 
         if args.stop_after == "cropping":
@@ -159,12 +154,9 @@ if __name__ == "__main__":
 
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
-
         stripped, shift = stripping(cropped, ssnet)
-
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
-
         parcellation_progress.update()
 
         if args.stop_after == "stripping":
