@@ -35,14 +35,12 @@ def separate(
     # Disable gradient calculation for inference
     with torch.inference_mode():
         # Initialize an output tensor with the specified stack dimensions
-        output = torch.zeros(stack[0], 3, stack[1], stack[2]).to(device)
+        output = torch.zeros(stack[0], 3, stack[1], stack[2], device=device)
 
         # Iterate over each slice in the voxel data
         for i, v in enumerate(voxel):
             # Reshape the slice and convert it to a tensor
-            image = torch.tensor(v.reshape(1, 1, stack[1], stack[2]))
-            # Move the tensor to the specified device
-            image = image.to(device)
+            image = torch.tensor(v.reshape(1, 1, stack[1], stack[2]), device=device)
             # Perform a forward pass through the model and apply softmax
             x_out = torch.softmax(model(image), 1).detach()
             # Store the output in the corresponding slice of the output tensor

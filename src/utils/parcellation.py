@@ -45,8 +45,7 @@ def parcellate(
         for i in range(1, stack[0] + 1):
             # Stack three consecutive slices to form the input image
             image = np.stack([voxel[i - 1], voxel[i], voxel[i + 1]])
-            image = torch.tensor(image.reshape(1, 3, stack[1], stack[2]))
-            image = image.to(device)
+            image = torch.tensor(image.reshape(1, 3, stack[1], stack[2]), device=device)
 
             # Perform the forward pass through the model and apply softmax
             x_out = torch.softmax(model(image), 1).detach().cpu()

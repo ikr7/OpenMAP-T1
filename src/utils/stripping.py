@@ -23,7 +23,7 @@ def strip(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: 
     # Disable gradient calculation for inference
     with torch.inference_mode():
         # Initialize an empty tensor to store the output
-        output = torch.zeros(256, 256, 256).to(device)
+        output = torch.zeros(256, 256, 256, device=device)
 
         # Iterate over each slice in the voxel data
         for i, v in enumerate(voxel):
@@ -31,7 +31,7 @@ def strip(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: 
             image = v.reshape(1, 1, 256, 256)
 
             # Convert the numpy array to a PyTorch tensor and move it to the specified device
-            image = torch.tensor(image).to(device)
+            image = torch.tensor(image, device=device)
 
             # Apply the model to the input image and apply the sigmoid activation function
             x_out = torch.sigmoid(model(image)).detach()

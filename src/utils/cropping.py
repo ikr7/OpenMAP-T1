@@ -19,10 +19,10 @@ def crop(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: t
     """
     model.eval()
     with torch.inference_mode():
-        output = torch.zeros(256, 256, 256).to(device)
+        output = torch.zeros(256, 256, 256, device=device)
         for i, v in enumerate(voxel):
             image = v.reshape(1, 1, 256, 256)
-            image = torch.tensor(image).to(device)
+            image = torch.tensor(image, device=device)
             x_out = torch.sigmoid(model(image)).detach()
             output[i] = x_out
         return output.reshape(256, 256, 256)
