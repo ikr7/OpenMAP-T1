@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import nibabel as nib
+import nibabel.processing as processing
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -179,6 +180,11 @@ if __name__ == "__main__":
 
         # save image
         parcellation_progress.set_description_str("save image")
-        jhu_atlas_map_nii = nib.nifti1.Nifti1Image(jhu_atlas_map, affine=orig_image.affine, header=orig_image.header)
+        jhu_atlas_map_nii = processing.conform(
+            nib.nifti1.Nifti1Image(jhu_atlas_map, affine=orig_image.affine, header=orig_image.header),
+            out_shape=(orig_image.header["dim"][1], orig_image.header["dim"][2], orig_image.header["dim"][3]),
+            voxel_size=(orig_image.header["pixdim"][1], orig_image.header["pixdim"][2], orig_image.header["pixdim"][3]),
+            order=0,
+        )
         nib.loadsave.save(jhu_atlas_map_nii, output_dir / f"{input_file_path.stem}_Type1_Level5.nii")
         parcellation_progress.update()
