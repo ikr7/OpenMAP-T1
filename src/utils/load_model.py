@@ -4,8 +4,6 @@ import torch
 
 from utils.network import UNet
 
-# CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 
 
 def check_model_dir(model_dir: Path) -> None:
