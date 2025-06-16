@@ -9,7 +9,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 LEVEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", "level"))
 
 
-def change_level(df, level="Type1_Level1", sulcus=True):
+def change_level(df: pd.DataFrame, level: str = "Type1_Level1", sulcus: bool = True) -> pd.DataFrame:
     """
     Change the level of the given DataFrame based on specified ROI levels.
 
@@ -45,7 +45,7 @@ def change_level(df, level="Type1_Level1", sulcus=True):
     return change_df
 
 
-def make_csv(parcellation, output_dir, basename):
+def make_csv(parcellation: np.typing.NDArray[np.uint16], output_dir: str, basename: str) -> pd.DataFrame:
     """
     Generates multiple CSV files containing volume data for different levels of parcellation.
 

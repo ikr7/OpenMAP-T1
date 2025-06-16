@@ -38,7 +38,7 @@ def save_voxel_with_reference_image(voxel: np.typing.NDArray, reference_image: n
     nib.loadsave.save(result_nii, dest_path)
 
 
-def reimburse_conform(output_dir, basename, suffix, odata, data, output):
+def reimburse_conform(output_dir: str, basename: str, suffix: str, odata: nib.nifti1.Nifti1Image, data: nib.nifti1.Nifti1Image, output: np.typing.NDArray[np.float32]) -> None:
     nii = nib.Nifti1Image(output.astype(np.uint16), affine=data.affine)
     header = odata.header
     nii = processing.conform(

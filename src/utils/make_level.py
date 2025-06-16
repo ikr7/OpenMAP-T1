@@ -10,7 +10,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
 LEVEL_DIR = os.path.join(PROJECT_ROOT, "level")
 
 
-def create_parcellated_images(output, output_dir, basename, odata, data):
+def create_parcellated_images(output: np.typing.NDArray[np.uint16], output_dir: str, basename: str, odata: nib.nifti1.Nifti1Image, data: nib.nifti1.Nifti1Image) -> None:
     """
     Creates parcellated segmentation images for each specified level based on a mapping
     read from CSV files. The mapping is recalculated for each level using the original image labels.
