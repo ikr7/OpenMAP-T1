@@ -51,27 +51,19 @@ class UNet(nn.Module):
         self.econv0 = nn.Conv2d(ch_in, 64, kernel_size=1, stride=1, padding=0, bias=True)
         nn.init.normal_(self.econv0.weight, mean=0.0, std=0.02)
 
-        self.econv1 = self.make_downblock(64, 64)
-        self.econv2 = self.make_downblock(64, 128)
-        self.econv3 = self.make_downblock(128, 256)
-        self.econv4 = self.make_downblock(256, 512)
-        self.bottle = self.make_bottleblock(512, 1024)
-        self.dconv4 = self.make_upblock(1024, 512)
-        self.dconv3 = self.make_upblock(512, 256)
-        self.dconv2 = self.make_upblock(256, 128)
-        self.dconv1 = self.make_upblock(128, 64)
+        self.econv1 = EncodeBlock(64, 64)
+        self.econv2 = EncodeBlock(64, 128)
+        self.econv3 = EncodeBlock(128, 256)
+        self.econv4 = EncodeBlock(256, 512)
+        self.bottle = ConvBlock(512, 1024)
+        self.dconv4 = DecodeBlock(1024, 512)
+        self.dconv3 = DecodeBlock(512, 256)
+        self.dconv2 = DecodeBlock(256, 128)
+        self.dconv1 = DecodeBlock(128, 64)
 
         self.dconv0 = nn.Conv2d(64, ch_out, kernel_size=1, stride=1, padding=0, bias=True)
         nn.init.normal_(self.dconv0.weight, mean=0.0, std=0.02)
 
-    def make_downblock(self, ch_in: int, ch_out: int) -> EncodeBlock:
-        return EncodeBlock(ch_in=ch_in, ch_out=ch_out)
-
-    def make_bottleblock(self, ch_in: int, ch_out: int) -> ConvBlock:
-        return ConvBlock(ch_in=ch_in, ch_out=ch_out)
-
-    def make_upblock(self, ch_in: int, ch_out: int) -> DecodeBlock:
-        return DecodeBlock(ch_in=ch_in, ch_out=ch_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.econv0(x)
