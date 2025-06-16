@@ -60,12 +60,12 @@ def hemisphere(
     coronal_image = sagittal_image.transpose(1, 2, 0)
     axial_image = sagittal_image.transpose(2, 1, 0)
 
-    ensambled_prob = (
+    ensembled_prob = (
         separate(coronal_image, hnet_coronal, device, "c").permute(1, 3, 0, 2)
         + separate(axial_image, hnet_axial, device, "a").permute(1, 3, 2, 0)
     ) / 2
 
-    hemisphere_map = torch.argmax(ensambled_prob, 0).cpu().numpy().astype(np.uint8)
+    hemisphere_map = torch.argmax(ensembled_prob, 0).cpu().numpy().astype(np.uint8)
 
     # todo: tidy up this
     dilated_mask_1 = binary_dilation(hemisphere_map == 1, iterations=5).astype(np.uint8)

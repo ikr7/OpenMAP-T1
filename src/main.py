@@ -50,7 +50,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--output-dir",
-        help="output directory for parcellation results and intermidiate files",
+        help="output directory for parcellation results and intermediate files",
         dest="output_dir",
         required=True,
         type=Path,

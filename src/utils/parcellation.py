@@ -70,13 +70,13 @@ def parcellation(
     coronal_image = sagittal_image.transpose(1, 2, 0)
     axial_image = sagittal_image.transpose(2, 1, 0)
 
-    ensambled_prob = (
+    ensembled_prob = (
         parcellate(sagittal_image, pnet_sagittal, device, "s").permute(1, 0, 2, 3)
         + parcellate(coronal_image, pnet_coronal, device, "c").permute(1, 3, 0, 2)
         + parcellate(axial_image, pnet_axial, device, "a").permute(1, 3, 2, 0)
     ) / 3
 
-    parcellation_map = torch.argmax(ensambled_prob, 0).numpy().astype(np.uint16)
+    parcellation_map = torch.argmax(ensembled_prob, 0).numpy().astype(np.uint16)
 
     return parcellation_map
 

@@ -129,13 +129,13 @@ def main():
         print(f"Input directory {opt.i} exists.")
 
     # Get the list of input files
-    pathes = sorted(
+    paths = sorted(
         sorted(glob.glob(os.path.join(opt.i, "**/*.nii"), recursive=True))
         + sorted(glob.glob(os.path.join(opt.i, "**/*.nii.gz"), recursive=True))
     )
-    print(f"Found {len(pathes)} NIfTI files in {opt.i}")
+    print(f"Found {len(paths)} NIfTI files in {opt.i}")
 
-    for path in tqdm(pathes):
+    for path in tqdm(paths):
         # Extract the base name of the file (without extension)
         basename = os.path.splitext(os.path.basename(path))[0]
         if basename.endswith(".nii"):
