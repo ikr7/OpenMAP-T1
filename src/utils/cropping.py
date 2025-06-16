@@ -46,35 +46,6 @@ def closing(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float3
     return voxel
 
 
-# def cropping(output_dir, basename, odata, data, cnet, device):
-#     """
-#     Crops the input medical imaging data using a neural network model.
-
-#     Args:
-#         data (nibabel.Nifti1Image): The input medical imaging data in NIfTI format.
-#         cnet (torch.nn.Module): The neural network model used for cropping.
-#         device (torch.device): The device (CPU or GPU) on which the model is run.
-
-#     Returns:
-#         numpy.ndarray: The cropped medical imaging data.
-#     """
-#     voxel = data.get_fdata().astype("float32")
-#     voxel = normalize(voxel)
-
-#     coronal = voxel.transpose(1, 2, 0)
-#     sagittal = voxel
-#     out_c = crop(coronal, cnet, device).permute(2, 0, 1)
-#     out_s = crop(sagittal, cnet, device)
-#     out_e = ((out_c + out_s) / 2) > 0.5
-#     out_e = out_e.cpu().numpy()
-#     out_e = closing(out_e)
-#     cropped = data.get_fdata().astype("float32") * out_e
-
-#     reimburse_conform(output_dir, basename, "cropped", odata, data, out_e)
-
-#     return cropped
-
-
 def cropping(orig_image: np.typing.NDArray[np.float32], cnet: torch.nn.Module) -> np.typing.NDArray[np.float32]:
 
     device = next(cnet.parameters()).device
