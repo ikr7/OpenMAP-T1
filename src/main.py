@@ -23,6 +23,28 @@ from utils.preprocessing import preprocess
 from utils.stripping import stripping
 
 
+def get_device(device_arg: Literal["auto", "cuda", "cpu"]) -> torch.device:
+    """Get the appropriate torch device based on user preference and availability."""
+    if device_arg == "cpu":
+        print("Using CPU device (forced by user)")
+        return torch.device("cpu")
+    elif device_arg == "cuda":
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print(f"Using CUDA device: {torch.cuda.get_device_name(device)}")
+            return device
+        else:
+            raise Exception("CUDA requested but not available. Use --device auto or --device cpu")
+    else:  # device_arg == "auto"
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print(f"Using CUDA device: {torch.cuda.get_device_name(device)}")
+            return device
+        else:
+            print("CUDA not available, falling back to CPU")
+            return torch.device("cpu")
+
+
 @dataclass
 class ParcellationArgs:
     input_dir: Path
@@ -32,6 +54,7 @@ class ParcellationArgs:
     no_intermediate_images: bool
     use_amp: bool
     staged_model_loading: bool
+    device: Literal["auto", "cuda", "cpu"]
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -94,6 +117,14 @@ def create_parser() -> argparse.ArgumentParser:
         default=False,
     )
 
+    parser.add_argument(
+        "--device",
+        help="processing device: 'auto' (default), 'cuda', or 'cpu'",
+        dest="device",
+        choices=["auto", "cuda", "cpu"],
+        default="auto",
+    )
+
     return parser
 
 
@@ -114,7 +145,7 @@ if __name__ == "__main__":
 
     check_model_dir(model_dir)
 
-    device = torch.device("cuda")
+    device = get_device(args.device)
     model_manager = ModelManager(model_dir, device, args.staged_model_loading)
 
     input_file_paths = sorted(
