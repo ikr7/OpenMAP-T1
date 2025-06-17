@@ -33,7 +33,7 @@ docker build -t openmap-t1 .
 
 2. Run the Docker Container
 ```
-docker run --rm -it -v "$(pwd):/app" openmap-t1 -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER
+docker run --rm -it -v "$(pwd):/app" openmap-t1 --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER
 ```
 * ```docker run```: This starts a new container from a Docker image.
 * ```--rm```: Automatically removes the container when it stops running, keeping your system clean by not leaving behind stopped containers.
@@ -51,11 +51,11 @@ Together, these options let you interact with the container through your termina
 
 * ```openmap-t1```: This is the name of the Docker image from which the container is created. It should have been built previously using a command like ```docker build -t openmap-t1 .```.
 
-* ```-i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER```
+* ```--input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER```
 These are the command-line arguments passed to the application running inside the container:
-   * ```-i INPUT_FOLDER```: Specifies the input folder path.
-   * ```-o OUTPUT_FOLDER```: Specifies the output folder path.
-   * ```-m MODEL_FOLDER```: Specifies the model folder path.
+   * ```--input-dir INPUT_FOLDER```: Specifies the input folder path.
+   * ```--output-dir OUTPUT_FOLDER```: Specifies the output folder path.
+   * ```--model-dir MODEL_FOLDER```: Specifies the model folder path.
 Replace ```INPUT_FOLDER```, ```OUTPUT_FOLDER```, and ```MODEL_FOLDER``` with the appropriate directory names or paths that exist within the mounted ```/app``` directory.
 
 # Default Installation Instruction
@@ -64,7 +64,12 @@ Replace ```INPUT_FOLDER```, ```OUTPUT_FOLDER```, and ```MODEL_FOLDER``` with the
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fmfkxxZjChExnl5cHITYkNYgTu3MZ7Ql#scrollTo=xwZxyL5ewVNF)
 
 0. install python and make virtual environment<br>
-Python 3.9 or later is recommended.
+Python 3.10+ is required, Python 3.13 is recommended.
+
+```bash
+# Create and activate virtual environment
+python3 -m venv .
+```
 
 1. Clone this repository, and go into the repository:
 ```
@@ -102,43 +107,79 @@ Using OpenMAP-T1 is straightforward. You can use it in any terminal on your linu
 Run the script from your terminal using:
 ```
 # Default
-python3 src/main.py -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER
 ```
 ```
 # Docker
-docker run --rm -it -v "$(pwd):/app" openmap-t1 -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER
+docker run --rm -it -v "$(pwd):/app" openmap-t1 --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER
 ```
-* **-i INPUT_FOLDER**: Specifies the folder containing the input brain MRI images.
-* **-o OUTPUT_FOLDER**: Defines the folder where the results will be saved. This folder will be created automatically if it does not exist.
-* **-m MODEL_FOLDER**: Indicates the folder containing the pretrained models for processing.
+* **--input-dir INPUT_FOLDER**: Specifies the folder containing the input brain MRI images.
+* **--output-dir OUTPUT_FOLDER**: Defines the folder where the results will be saved. This folder will be created automatically if it does not exist.
+* **--model-dir MODEL_FOLDER**: Indicates the folder containing the pretrained models for processing.
 
-## Optional Faster Processing Steps
-OpenMAP-T1 now allows you to perform only specific processing steps using the following mutually exclusive flags. By specifying these options, OpenMAP-T1 skips unnecessary processing steps, which can significantly reduce overall processing time.
+## Optional Processing Steps
+OpenMAP-T1 allows you to stop processing after specific steps using the `--stop-after` flag. This can significantly reduce processing time when you only need partial results.
 
-* **Only Face Cropping**: If you only want to perform face cropping and skip the rest of the processing steps, use:
+* **Stop After Face Cropping**: If you only want to perform face cropping, use:
 ```
 # Default
-python3 main.py -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER --only-face-cropping
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --stop-after cropping
 ```
 ```
 # Docker
-docker run --rm -it -v "$(pwd):/app" openmap-t1 -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER --only-face-cropping
+docker run --rm -it -v "$(pwd):/app" openmap-t1 --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --stop-after cropping
 ```
-* **Only Skull Stripping**: If you want to perform only skull stripping and skip all other processing steps, use the skull stripping flag. Note that skull stripping requires face cropping as a prerequisite, so face cropping is not considered one of the "other processing" steps that are skipped, use:
+* **Stop After Skull Stripping**: If you want to perform face cropping and skull stripping only, use:
 ```
-python3 main.py -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER --only-skull-stripping
+# Default
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --stop-after stripping
 ```
 ```
 # Docker
-docker run --rm -it -v "$(pwd):/app" openmap-t1 -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER --only-skull-stripping
+docker run --rm -it -v "$(pwd):/app" openmap-t1 --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --stop-after stripping
 ```
 
-## Using Specific GPU
-If you want to run the script on a specific GPU (for example, GPU 1), prepend the command with the ```CUDA_VISIBLE_DEVICES=N```.
+## Device Selection
+You can specify which device to use for processing:
+
+* **Automatic device selection (default)**: OpenMAP-T1 will automatically use GPU if available, otherwise CPU
 ```
-CUDA_VISIBLE_DEVICES=1 python3 main.py -i INPUT_FOLDER -o OUTPUT_FOLDER -m MODEL_FOLDER
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --device auto
 ```
-If the error occurs for Windows users, please change ```Python3``` to ```Python```.
+
+* **Force GPU usage**: Use this if you want to ensure GPU is used (will fail if GPU not available)
+```
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --device cuda
+```
+
+* **Force CPU usage**: Use this for CPU-only processing
+```
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --device cpu
+```
+
+* **Using Specific GPU**: For specific GPU selection, use CUDA_VISIBLE_DEVICES
+```
+CUDA_VISIBLE_DEVICES=1 bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER
+```
+
+## Additional Options
+
+* **No intermediate images**: Skip saving intermediate processing files
+```
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --no-intermediate-images
+```
+
+* **Use automatic mixed precision**: Faster processing with slightly lower memory usage
+```
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --use-amp
+```
+
+* **Staged model loading**: Reduce GPU memory usage by loading/unloading models per stage (slower for multiple images)
+```
+bin/python src/main.py --input-dir INPUT_FOLDER --output-dir OUTPUT_FOLDER --model-dir MODEL_FOLDER --staged-model-loading
+```
+
+If the error occurs for Windows users, please change ```bin/python``` to ```python```.
 
 # Folder
 All images you input must be in NifTi format and have a .nii extension.
