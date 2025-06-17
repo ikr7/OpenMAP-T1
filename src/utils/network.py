@@ -64,7 +64,6 @@ class UNet(nn.Module):
         self.dconv0 = nn.Conv2d(64, ch_out, kernel_size=1, stride=1, padding=0, bias=True)
         nn.init.normal_(self.dconv0.weight, mean=0.0, std=0.02)
 
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.econv0(x)
         x, skip1 = self.econv1(x)

@@ -79,7 +79,7 @@ def make_csv(parcellation: np.typing.NDArray[np.uint16], output_dir: str, basena
     output_path = Path(output_dir)
     csv_dir = output_path / "csv"
     csv_dir.mkdir(exist_ok=True)
-    
+
     df_Type1_level5.to_csv(csv_dir / f"{basename}_Type1_Level5.csv", index=False)
     df_Type1_level4.to_csv(csv_dir / f"{basename}_Type1_Level4.csv", index=False)
     df_Type1_level3.to_csv(csv_dir / f"{basename}_Type1_Level3.csv", index=False)
