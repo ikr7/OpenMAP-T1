@@ -15,10 +15,7 @@ from utils.functions import save_voxel_with_reference_image
 from utils.hemisphere import hemisphere
 from utils.load_model import (
     check_model_dir,
-    load_cnet,
-    load_hnet,
-    load_pnet,
-    load_ssnet,
+    ModelManager,
 )
 from utils.parcellation import parcellation
 from utils.postprocessing import combine_maps
@@ -34,6 +31,7 @@ class ParcellationArgs:
     stop_after: Literal["cropping", "stripping"]
     no_intermediate_images: bool
     use_amp: bool
+    stagemodel_loading: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -88,6 +86,14 @@ def create_parser() -> argparse.ArgumentParser:
         default=False,
     )
 
+    parser.add_argument(
+        "--staged-model-loading",
+        help="load and unload models per processing stage to reduce GPU memory usage (slower for multiple images)",
+        dest="staged_model_loading",
+        action="store_true",
+        default=False,
+    )
+
     return parser
 
 
@@ -109,20 +115,7 @@ if __name__ == "__main__":
     check_model_dir(model_dir)
 
     device = torch.device("cuda")
-
-    cnet = load_cnet(model_dir).to(device)
-    ssnet = load_ssnet(model_dir).to(device)
-
-    pnet_coronal, pnet_sagittal, pnet_axial = load_pnet(model_dir)
-
-    pnet_coronal = pnet_coronal.to(device)
-    pnet_sagittal = pnet_sagittal.to(device)
-    pnet_axial = pnet_axial.to(device)
-
-    hnet_coronal, hnet_axial = load_hnet(model_dir)
-
-    hnet_coronal = hnet_coronal.to(device)
-    hnet_axial = hnet_axial.to(device)
+    model_manager = ModelManager(model_dir, device, args.staged_model_loading)
 
     input_file_paths = sorted(
         [
@@ -155,8 +148,9 @@ if __name__ == "__main__":
 
         # face crop
         parcellation_progress.set_description_str("face crop")
-        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
-            cropped = cropping(preprocessed, cnet)
+        with model_manager.load_cnet() as cnet:
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                cropped = cropping(preprocessed, cnet)
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
         parcellation_progress.update()
@@ -166,8 +160,9 @@ if __name__ == "__main__":
 
         # skull-strip
         parcellation_progress.set_description_str("skull-strip")
-        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
-            stripped, shift = stripping(cropped, ssnet)
+        with model_manager.load_ssnet() as ssnet:
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                stripped, shift = stripping(cropped, ssnet)
         if not args.no_intermediate_images:
             save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
         parcellation_progress.update()
@@ -177,14 +172,16 @@ if __name__ == "__main__":
 
         # parcellate
         parcellation_progress.set_description_str("parcellate")
-        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
-            parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
+        with model_manager.load_pnet() as (pnet_coronal, pnet_sagittal, pnet_axial):
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
         parcellation_progress.update()
 
         # hemisphere-separate
         parcellation_progress.set_description_str("hemisphere-separate")
-        with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
-            hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
+        with model_manager.load_hnet() as (hnet_coronal, hnet_axial):
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
         parcellation_progress.update()
 
         # postprocess
