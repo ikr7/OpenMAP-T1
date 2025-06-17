@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from scipy import ndimage
 
-from utils.functions import normalize, reimburse_conform
+from utils.functions import normalize
 
 
 def strip(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: torch.device) -> torch.Tensor:
@@ -70,62 +70,3 @@ def stripping(
     cropped_shifted_image = shifted_image[32:-32, 16:-16, 32:-32]
 
     return cropped_shifted_image, shift
-
-
-# def stripping(output_dir, basename, voxel, odata, data, ssnet, device):
-#     """
-#     Perform brain stripping on a given voxel using a specified neural network.
-
-#     This function normalizes the input voxel, applies brain stripping in three anatomical planes
-#     (coronal, sagittal, and axial), and combines the results to produce a final stripped brain image.
-#     The stripped image is then centered and cropped.
-
-#     Args:
-#         voxel (numpy.ndarray): The input 3D voxel data to be stripped.
-#         data (nibabel.Nifti1Image): The original neuroimaging data.
-#         ssnet (torch.nn.Module): The neural network model used for brain stripping.
-#         device (torch.device): The device on which the neural network model is loaded (e.g., CPU or GPU).
-
-#     Returns:
-#         tuple: A tuple containing:
-#             - stripped (numpy.ndarray): The stripped and processed brain image.
-#             - (xd, yd, zd) (tuple of int): The shifts applied to center the brain image in the x, y, and z directions.
-#     """
-#     # Normalize the input voxel data
-#     voxel = normalize(voxel)
-
-#     # Prepare the voxel data in three anatomical planes: coronal, sagittal, and axial
-#     coronal = voxel.transpose(1, 2, 0)
-#     sagittal = voxel
-#     axial = voxel.transpose(2, 1, 0)
-
-#     # Apply the brain stripping model to each plane
-#     out_c = strip(coronal, ssnet, device).permute(2, 0, 1)
-#     out_s = strip(sagittal, ssnet, device)
-#     out_a = strip(axial, ssnet, device).permute(2, 1, 0)
-
-#     # Combine the results from the three planes and threshold the output
-#     out_e = ((out_c + out_s + out_a) / 3) > 0.5
-#     out_e = out_e.cpu().numpy()
-
-#     # Multiply the original data by the thresholded output to get the stripped brain image
-#     stripped = data.get_fdata().astype("float32") * out_e
-
-#     # reimburse_conform(output_dir, basename, "stripped", odata, data, out_e)
-
-#     # Calculate the center of mass of the stripped brain image
-#     x, y, z = map(int, ndimage.center_of_mass(out_e))
-
-#     # Calculate the shifts needed to center the brain image
-#     xd = 128 - x
-#     yd = 120 - y
-#     zd = 128 - z
-
-#     # Apply the shifts to center the brain image
-#     stripped = np.roll(stripped, (xd, yd, zd), axis=(0, 1, 2))
-
-#     # Crop the centered brain image
-#     stripped = stripped[32:-32, 16:-16, 32:-32]
-
-#     # Return the stripped brain image and the shifts applied
-#     return stripped, (xd, yd, zd)
