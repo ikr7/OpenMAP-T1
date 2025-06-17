@@ -31,7 +31,7 @@ class ParcellationArgs:
     stop_after: Literal["cropping", "stripping"]
     no_intermediate_images: bool
     use_amp: bool
-    stagemodel_loading: bool
+    staged_model_loading: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
