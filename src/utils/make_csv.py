@@ -1,15 +1,15 @@
-import os
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 # このファイルのあるディレクトリの絶対パスを取得し、そこから level ディレクトリへの絶対パスを作成
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-LEVEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", "level"))
+CURRENT_DIR = Path(__file__).resolve().parent
+LEVEL_DIR = CURRENT_DIR.parent.parent / "level"
 
 
-def change_level(df, level="Type1_Level1", sulcus=True):
+def change_level(df: pd.DataFrame, level: str = "Type1_Level1", sulcus: bool = True) -> pd.DataFrame:
     """
     Change the level of the given DataFrame based on specified ROI levels.
 
@@ -22,8 +22,8 @@ def change_level(df, level="Type1_Level1", sulcus=True):
     pd.DataFrame: The modified DataFrame with the specified level changes applied.
     """
     # LEVEL_DIR を基準に CSV ファイルの絶対パスを作成
-    ROI_number = pd.read_csv(os.path.join(LEVEL_DIR, "Level_ROI_No.csv"))
-    ROI_name = pd.read_csv(os.path.join(LEVEL_DIR, "Level_ROI_Name.csv"))
+    ROI_number = pd.read_csv(LEVEL_DIR / "Level_ROI_No.csv")
+    ROI_name = pd.read_csv(LEVEL_DIR / "Level_ROI_Name.csv")
 
     if sulcus == False:
         tmp = ROI_number["Type1_Level2"]
@@ -45,7 +45,7 @@ def change_level(df, level="Type1_Level1", sulcus=True):
     return change_df
 
 
-def make_csv(parcellation, output_dir, basename):
+def make_csv(parcellation: np.typing.NDArray[np.uint16], output_dir: str, basename: str) -> pd.DataFrame:
     """
     Generates multiple CSV files containing volume data for different levels of parcellation.
 
@@ -58,10 +58,8 @@ def make_csv(parcellation, output_dir, basename):
     pandas.DataFrame: The DataFrame containing volume data for Type1_Level5.
     """
     # LEVEL_DIR を基準にテキストファイルの絶対パスを作成
-    csv_path = os.path.join(LEVEL_DIR, "Level5.txt")
-    df_Type1_level5 = (
-        pd.read_table(csv_path, names=["number", "region"]).astype("str").set_index("number")
-    )
+    csv_path = LEVEL_DIR / "Level5.txt"
+    df_Type1_level5 = pd.read_table(csv_path, names=["number", "region"]).astype("str").set_index("number")
     for i in range(1, 281):
         volume = np.count_nonzero(parcellation == i)
         df_Type1_level5.loc[str(i), basename] = volume
@@ -78,37 +76,20 @@ def make_csv(parcellation, output_dir, basename):
     df_Type2_level2 = change_level(df_Type1_level5, level="Type2_Level2")
     df_Type2_level1 = change_level(df_Type1_level5, level="Type2_Level1")
 
-    os.makedirs(os.path.join(output_dir, "csv"), exist_ok=True)
-    df_Type1_level5.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level5.csv"), index=False
-    )
-    df_Type1_level4.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level4.csv"), index=False
-    )
-    df_Type1_level3.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level3.csv"), index=False
-    )
-    df_Type1_level2.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level2.csv"), index=False
-    )
-    df_Type1_level1.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type1_Level1.csv"), index=False
-    )
+    output_path = Path(output_dir)
+    csv_dir = output_path / "csv"
+    csv_dir.mkdir(exist_ok=True)
 
-    df_Type2_level5.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level5.csv"), index=False
-    )
-    df_Type2_level4.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level4.csv"), index=False
-    )
-    df_Type2_level3.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level3.csv"), index=False
-    )
-    df_Type2_level2.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level2.csv"), index=False
-    )
-    df_Type2_level1.to_csv(
-        os.path.join(output_dir, f"csv/{basename}_Type2_Level1.csv"), index=False
-    )
+    df_Type1_level5.to_csv(csv_dir / f"{basename}_Type1_Level5.csv", index=False)
+    df_Type1_level4.to_csv(csv_dir / f"{basename}_Type1_Level4.csv", index=False)
+    df_Type1_level3.to_csv(csv_dir / f"{basename}_Type1_Level3.csv", index=False)
+    df_Type1_level2.to_csv(csv_dir / f"{basename}_Type1_Level2.csv", index=False)
+    df_Type1_level1.to_csv(csv_dir / f"{basename}_Type1_Level1.csv", index=False)
+
+    df_Type2_level5.to_csv(csv_dir / f"{basename}_Type2_Level5.csv", index=False)
+    df_Type2_level4.to_csv(csv_dir / f"{basename}_Type2_Level4.csv", index=False)
+    df_Type2_level3.to_csv(csv_dir / f"{basename}_Type2_Level3.csv", index=False)
+    df_Type2_level2.to_csv(csv_dir / f"{basename}_Type2_Level2.csv", index=False)
+    df_Type2_level1.to_csv(csv_dir / f"{basename}_Type2_Level1.csv", index=False)
 
     return df_Type1_level5

@@ -1,0 +1,8 @@
+__pycache__/
+bin/
+lib/
+lib64
+pyvenv.cfg
+share/
+OpenMAP-T1-V2.0.0/
+tmp/

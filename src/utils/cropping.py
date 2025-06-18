@@ -2,10 +2,10 @@ import numpy as np
 import torch
 from scipy.ndimage import binary_closing
 
-from utils.functions import normalize, reimburse_conform
+from utils.functions import normalize
 
 
-def crop(voxel, model, device):
+def crop(voxel: np.typing.NDArray[np.float32], model: torch.nn.Module, device: torch.device) -> torch.Tensor:
     """
     Crops the given voxel data using the provided model and device.
 
@@ -19,16 +19,16 @@ def crop(voxel, model, device):
     """
     model.eval()
     with torch.inference_mode():
-        output = torch.zeros(256, 256, 256).to(device)
+        output = torch.zeros(256, 256, 256, device=device)
         for i, v in enumerate(voxel):
             image = v.reshape(1, 1, 256, 256)
-            image = torch.tensor(image).to(device)
+            image = torch.tensor(image, device=device)
             x_out = torch.sigmoid(model(image)).detach()
             output[i] = x_out
         return output.reshape(256, 256, 256)
 
 
-def closing(voxel):
+def closing(voxel: np.typing.NDArray[np.float32]) -> np.typing.NDArray[np.float32]:
     """
     Perform a binary closing operation on a 3D voxel array.
 
@@ -46,30 +46,19 @@ def closing(voxel):
     return voxel
 
 
-def cropping(output_dir, basename, odata, data, cnet, device):
-    """
-    Crops the input medical imaging data using a neural network model.
+def cropping(orig_image: np.typing.NDArray[np.float32], cnet: torch.nn.Module) -> np.typing.NDArray[np.float32]:
 
-    Args:
-        data (nibabel.Nifti1Image): The input medical imaging data in NIfTI format.
-        cnet (torch.nn.Module): The neural network model used for cropping.
-        device (torch.device): The device (CPU or GPU) on which the model is run.
+    device = next(cnet.parameters()).device
 
-    Returns:
-        numpy.ndarray: The cropped medical imaging data.
-    """
-    voxel = data.get_fdata().astype("float32")
-    voxel = normalize(voxel)
+    sagittal_voxel = normalize(orig_image)
+    coronal_voxel = sagittal_voxel.transpose(1, 2, 0)
 
-    coronal = voxel.transpose(1, 2, 0)
-    sagittal = voxel
-    out_c = crop(coronal, cnet, device).permute(2, 0, 1)
-    out_s = crop(sagittal, cnet, device)
-    out_e = ((out_c + out_s) / 2) > 0.5
-    out_e = out_e.cpu().numpy()
-    out_e = closing(out_e)
-    cropped = data.get_fdata().astype("float32") * out_e
+    sagittal_prob = crop(sagittal_voxel, cnet, device)
+    coronal_prob = crop(coronal_voxel, cnet, device).permute(2, 0, 1)
 
-    reimburse_conform(output_dir, basename, "cropped", odata, data, out_e)
+    ensembled_mask_tensor = ((sagittal_prob + coronal_prob) * 0.5) > 0.5
+    ensembled_mask = closing(ensembled_mask_tensor.cpu().numpy())
 
-    return cropped
+    cropped_image = orig_image * ensembled_mask
+
+    return cropped_image

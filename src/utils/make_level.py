@@ -1,16 +1,22 @@
-import os
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 from nibabel import processing
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-LEVEL_DIR = os.path.join(PROJECT_ROOT, "level")
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent.parent
+LEVEL_DIR = PROJECT_ROOT / "level"
 
 
-def create_parcellated_images(output, output_dir, basename, odata, data):
+def create_parcellated_images(
+    output: np.typing.NDArray[np.uint16],
+    output_dir: str,
+    basename: str,
+    odata: nib.nifti1.Nifti1Image,
+    data: nib.nifti1.Nifti1Image,
+) -> None:
     """
     Creates parcellated segmentation images for each specified level based on a mapping
     read from CSV files. The mapping is recalculated for each level using the original image labels.
@@ -28,12 +34,12 @@ def create_parcellated_images(output, output_dir, basename, odata, data):
       - Values: values in the column corresponding to the current level (e.g., 'Type1_Level1', etc.)
 
     The output NIfTI files are saved as:
-      os.path.join(output_dir, f"parcellated/{basename}_{level}.nii")
+      parcellated_dir / f"{basename}_{level}.nii"
     """
 
     # CSVファイルのパスを LEVEL_DIR を基準に作成
-    df_no = pd.read_csv(os.path.join(LEVEL_DIR, "Level_ROI_No.csv"))
-    df_name = pd.read_csv(os.path.join(LEVEL_DIR, "Level_ROI_Name.csv"))
+    df_no = pd.read_csv(LEVEL_DIR / "Level_ROI_No.csv")
+    df_name = pd.read_csv(LEVEL_DIR / "Level_ROI_Name.csv")
 
     # List of target levels (exclude "Type1_Level5" since it is the input label type)
     all_level = [
@@ -71,5 +77,7 @@ def create_parcellated_images(output, output_dir, basename, odata, data):
         )
 
         # Construct the output file path and ensure the directory exists
-        os.makedirs(os.path.join(output_dir, "parcellated"), exist_ok=True)
-        nib.save(nii, os.path.join(output_dir, f"parcellated/{basename}_{level}.nii"))
+        output_path = Path(output_dir)
+        parcellated_dir = output_path / "parcellated"
+        parcellated_dir.mkdir(exist_ok=True)
+        nib.save(nii, parcellated_dir / f"{basename}_{level}.nii")

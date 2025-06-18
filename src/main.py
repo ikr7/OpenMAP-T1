@@ -1,0 +1,232 @@
+import argparse
+import contextlib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+import nibabel as nib
+import nibabel.processing as processing
+import numpy as np
+import torch
+from tqdm import tqdm
+
+from utils.cropping import cropping
+from utils.functions import save_voxel_with_reference_image
+from utils.hemisphere import hemisphere
+from utils.load_model import (
+    check_model_dir,
+    ModelManager,
+)
+from utils.parcellation import parcellation
+from utils.postprocessing import combine_maps
+from utils.preprocessing import preprocess
+from utils.stripping import stripping
+
+
+def get_device(device_arg: Literal["auto", "cuda", "cpu"]) -> torch.device:
+    """Get the appropriate torch device based on user preference and availability."""
+    if device_arg == "cpu":
+        print("Using CPU device (forced by user)")
+        return torch.device("cpu")
+    elif device_arg == "cuda":
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print(f"Using CUDA device: {torch.cuda.get_device_name(device)}")
+            return device
+        else:
+            raise Exception("CUDA requested but not available. Use --device auto or --device cpu")
+    else:  # device_arg == "auto"
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print(f"Using CUDA device: {torch.cuda.get_device_name(device)}")
+            return device
+        else:
+            print("CUDA not available, falling back to CPU")
+            return torch.device("cpu")
+
+
+@dataclass
+class ParcellationArgs:
+    input_dir: Path
+    output_dir: Path
+    model_dir: Path
+    stop_after: Literal["cropping", "stripping"]
+    no_intermediate_images: bool
+    use_amp: bool
+    staged_model_loading: bool
+    device: Literal["auto", "cuda", "cpu"]
+
+
+def create_parser() -> argparse.ArgumentParser:
+
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+
+    parser.add_argument(
+        "--input-dir",
+        help="input directory containing .nii/.nii.gz files",
+        dest="input_dir",
+        required=True,
+        type=Path,
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        help="output directory for parcellation results and intermediate files",
+        dest="output_dir",
+        required=True,
+        type=Path,
+    )
+
+    parser.add_argument(
+        "--model-dir",
+        help="model directory containing CNet/, HNet/, PNet/, and SSNet/",
+        dest="model_dir",
+        required=True,
+        type=Path,
+    )
+
+    parser.add_argument(
+        "--stop-after",
+        help="stop processing after specified operation",
+        dest="stop_after",
+        choices=["cropping", "stripping"],
+        default="parcellation",
+    )
+
+    parser.add_argument(
+        "--no-intermediate-images",
+        help="do not save intermediate images",
+        dest="no_intermediate_images",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--use-amp",
+        help="use amp (automatic mixed precision)",
+        dest="use_amp",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--staged-model-loading",
+        help="load and unload models per processing stage to reduce GPU memory usage (slower for multiple images)",
+        dest="staged_model_loading",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--device",
+        help="processing device: 'auto' (default), 'cuda', or 'cpu'",
+        dest="device",
+        choices=["auto", "cuda", "cpu"],
+        default="auto",
+    )
+
+    return parser
+
+
+if __name__ == "__main__":
+
+    parser = create_parser()
+    args = parser.parse_args(namespace=ParcellationArgs)
+
+    input_dir = Path.cwd() / args.input_dir
+    output_dir_root = Path.cwd() / args.output_dir
+    model_dir = Path.cwd() / args.model_dir
+
+    if not (input_dir.exists() and input_dir.is_dir()):
+        raise Exception(f"{input_dir} does not exist or is not a directory")
+
+    if not (model_dir.exists() and model_dir.is_dir()):
+        raise Exception(f"{model_dir} does not exist or is not a directory")
+
+    check_model_dir(model_dir)
+
+    device = get_device(args.device)
+    model_manager = ModelManager(model_dir, device, args.staged_model_loading)
+
+    input_file_paths = sorted(
+        [
+            *input_dir.glob("**/*.nii"),
+            *input_dir.glob("**/*.nii.gz"),
+        ]
+    )
+
+    input_file_paths_pbar = tqdm(input_file_paths)
+
+    for input_file_path in input_file_paths_pbar:
+
+        input_file_paths_pbar.set_description_str(f"{input_file_path.name}")
+
+        output_dir = output_dir_root / Path(*input_file_path.parts[len(input_dir.parts) :]).with_suffix("")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        parcellation_progress = tqdm(total=7, leave=False, bar_format="[{n}/{total}]: {desc}")
+
+        # load image
+        parcellation_progress.set_description_str("load image")
+        orig_image = nib.funcs.squeeze_image(nib.funcs.as_closest_canonical(nib.loadsave.load(input_file_path)))
+        input_image = nib.nifti1.Nifti1Image(orig_image.get_fdata().astype(np.float32), affine=orig_image.affine)
+        parcellation_progress.update()
+
+        # preprocess
+        parcellation_progress.set_description_str("preprocess")
+        preprocessed = preprocess(input_image)
+        parcellation_progress.update()
+
+        # face crop
+        parcellation_progress.set_description_str("face crop")
+        with model_manager.load_cnet() as cnet:
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                cropped = cropping(preprocessed, cnet)
+        if not args.no_intermediate_images:
+            save_voxel_with_reference_image(cropped, orig_image, output_dir / f"{input_file_path.stem}_cropped.nii")
+        parcellation_progress.update()
+
+        if args.stop_after == "cropping":
+            continue
+
+        # skull-strip
+        parcellation_progress.set_description_str("skull-strip")
+        with model_manager.load_ssnet() as ssnet:
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                stripped, shift = stripping(cropped, ssnet)
+        if not args.no_intermediate_images:
+            save_voxel_with_reference_image(stripped, orig_image, output_dir / f"{input_file_path.stem}_stripped.nii")
+        parcellation_progress.update()
+
+        if args.stop_after == "stripping":
+            continue
+
+        # parcellate
+        parcellation_progress.set_description_str("parcellate")
+        with model_manager.load_pnet() as (pnet_coronal, pnet_sagittal, pnet_axial):
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                parcellation_map = parcellation(stripped, pnet_coronal, pnet_sagittal, pnet_axial)
+        parcellation_progress.update()
+
+        # hemisphere-separate
+        parcellation_progress.set_description_str("hemisphere-separate")
+        with model_manager.load_hnet() as (hnet_coronal, hnet_axial):
+            with torch.autocast(device_type=device.type) if args.use_amp else contextlib.nullcontext():
+                hemisphere_map = hemisphere(stripped, hnet_coronal, hnet_axial)
+        parcellation_progress.update()
+
+        # postprocess
+        parcellation_progress.set_description_str("postprocess")
+        jhu_atlas_map = combine_maps(parcellation_map, hemisphere_map, shift)
+        parcellation_progress.update()
+
+        # save image
+        parcellation_progress.set_description_str("save image")
+        jhu_atlas_map_nii = processing.conform(
+            nib.nifti1.Nifti1Image(jhu_atlas_map, affine=orig_image.affine, header=orig_image.header),
+            out_shape=(orig_image.header["dim"][1], orig_image.header["dim"][2], orig_image.header["dim"][3]),
+            voxel_size=(orig_image.header["pixdim"][1], orig_image.header["pixdim"][2], orig_image.header["pixdim"][3]),
+            order=0,
+        )
+        nib.loadsave.save(jhu_atlas_map_nii, output_dir / f"{input_file_path.stem}_Type1_Level5.nii")
+        parcellation_progress.update()
